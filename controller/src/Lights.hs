@@ -6,8 +6,6 @@ import Control.Monad.Logger (MonadLogger, logDebug, logInfo, logWarn)
 import Control.Monad.Loops (unfoldM)
 import Control.Monad.State.Strict (StateT, state, runState, runStateT, get, put, modify')
 import qualified Data.Map.Strict as StrictMap
-import Data.Serialize (Serialize)
-import qualified Data.Serialize as Serialize
 import Data.Text (splitOn, strip)
 import Data.Word (Word16)
 import System.IO (BufferMode(NoBuffering), hSetBuffering, hSetEcho)
@@ -37,16 +35,13 @@ deriving instance Bounded TimeMs
 deriving instance Eq TimeMs
 deriving instance Num TimeMs
 deriving instance Ord TimeMs
-deriving instance Serialize TimeMs
+deriving instance Random TimeMs
 deriving instance Show TimeMs
 
 data Rgb = Rgb !Word8 !Word8 !Word8
 
 deriving instance Eq Rgb
 deriving instance Show Rgb
-instance Serialize Rgb where
-  put (Rgb r g b) = Serialize.putWord8 r >> Serialize.putWord8 g >> Serialize.putWord8 b
-  get = Rgb <$> Serialize.getWord8 <*> Serialize.getWord8 <*> Serialize.getWord8
 instance Bounded Rgb where
   minBound = Rgb 0 0 0
   maxBound = Rgb 0xff 0xff 0xff
@@ -65,16 +60,6 @@ data Report
   | LogReport Text
 deriving instance Eq Report
 deriving instance Show Report
-instance Serialize Report where
-  put = \ case
-    FreeLerpReport n -> Serialize.putWord8 1 >> Serialize.putWord8 n
-    CroakReport n -> Serialize.putWord8 2 >> Serialize.putWord8 n
-    LogReport t -> Serialize.putWord8 (fromIntegral $ length t) >> Serialize.put (encodeUtf8 t)
-  get = Serialize.getWord8 >>= \ case
-    1 -> FreeLerpReport <$> Serialize.getWord8
-    2 -> CroakReport <$> Serialize.getWord8
-    3 -> LogReport <$> (Serialize.getWord8 >>= \ l -> decodeUtf8 <$> Serialize.getByteString (fromIntegral l))
-    o -> fail $ "unknown report " <> show o
 
 data Cmd
   = ResyncCmd
@@ -82,16 +67,6 @@ data Cmd
   | NoLerpCmd
 deriving instance Eq Cmd
 deriving instance Show Cmd
-instance Serialize Cmd where
-  put = \ case
-    ResyncCmd -> Serialize.putWord8 1
-    LerpCmd l -> Serialize.putWord8 2 >> Serialize.put l
-    NoLerpCmd -> Serialize.putWord8 3
-  get = Serialize.getWord8 >>= \ case
-    1 -> pure ResyncCmd
-    2 -> LerpCmd <$> Serialize.get
-    3 -> pure NoLerpCmd
-    o -> fail $ "invalid cmd " <> show o
 
 data Lerp = Lerp
   { lerpLed        :: Word8
@@ -102,17 +77,6 @@ data Lerp = Lerp
 
 deriving instance Eq Lerp
 deriving instance Show Lerp
-instance Serialize Lerp where
-  put (Lerp {..}) = do
-    Serialize.putWord8 lerpLed
-    Serialize.putWord32le (unTimeMs lerpStartClock)
-    Serialize.putWord16le lerpDuration
-    Serialize.put lerpEndColor
-  get = Lerp
-    <$> Serialize.getWord8
-    <*> (TimeMs <$> Serialize.getWord32le)
-    <*> Serialize.getWord16le
-    <*> Serialize.get
 
 data Scheduler = Scheduler
   { schedulerLerpChan :: TChan Lerp
@@ -243,9 +207,9 @@ schedule ls = do
   Scheduler { schedulerLerpChan } <- asks schedulerOf
   atomically $ traverse_ (writeTChan schedulerLerpChan) ls
 
-ramps :: Word8 -> TimeMs -> [(Word16, Rgb)] -> [Lerp]
+ramps :: Word8 -> TimeMs -> [(Rgb, Word16)] -> [Lerp]
 ramps led t0 = go t0 Nothing
   where
-    go t (Just c) ((d, c2):rest) | c == c2 = go (t + fromIntegral d) (Just c2) rest
-    go t _ ((d, c):rest) = let tn = t + fromIntegral d in Lerp led tn d c : go tn (Just c) rest
+    go t (Just c) ((c2, d):rest) | c == c2 = go (t + fromIntegral d) (Just c2) rest
+    go t _ ((c, d):rest) = let tn = t + fromIntegral d in Lerp led t d c : go tn (Just c) rest
     go _ _ [] = []
