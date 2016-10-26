@@ -1,0 +1,58 @@
+name:                light-controller
+version:             0.1.0.0
+synopsis:            Simple project template from stack
+description:         Please see README.md
+homepage:            https://github.com/githubuser/light-controller#readme
+license:             BSD3
+author:              Author name here
+maintainer:          example@example.com
+copyright:           2016 Author name here
+category:            Web
+
+dependencies:
+  - aeson
+  - async
+  - base >= 4.7 && < 5
+  - bytestring
+  - cereal
+  - classy-prelude
+  - clock
+  - containers
+  - lens
+  - lifted-async
+  - monad-logger
+  - monad-loops
+  - mtl
+  - random
+  - stm
+  - text
+  - unix
+  - wreq
+  - wuss
+
+default-extensions:
+  - FlexibleContexts
+  - FlexibleInstances
+  - FunctionalDependencies
+  - GeneralizedNewtypeDeriving
+  - LambdaCase
+  - MonadComprehensions
+  - MultiParamTypeClasses
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - RankNTypes
+  - RecordWildCards
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TemplateHaskell
+  - TypeApplications
+  - TypeFamilies
+  - ViewPatterns
+
+ghc-options: -Wall -Werror -O2
+
+executables:
+  light-controller:
+    source-dirs: src
+    main:        Main.hs
