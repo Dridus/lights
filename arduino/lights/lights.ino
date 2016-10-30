@@ -152,9 +152,15 @@ void ingest(unsigned long now) {
             return;
           }
           
-          if (next_lerp_index >= MAX_LERPS) next_lerp_index = 0;
-          while (next_lerp_index < MAX_LERPS && lerps[next_lerp_index].state != STATE_EMPTY) ++next_lerp_index;
-          if (next_lerp_index == MAX_LERPS) {
+          int i = 0;
+          while (i < MAX_LERPS) {
+            next_lerp_index %= MAX_LERPS;
+            if (lerps[next_lerp_index].state == STATE_EMPTY) break;
+            ++next_lerp_index;
+            ++i;
+          }
+
+          if (i == MAX_LERPS) {
             croak(SORRY_WERE_FULL);
             next_lerp_index = 0;
             return;
@@ -190,7 +196,7 @@ void update_lerps(unsigned long now) {
   for (int lerp_n = 0; lerp_n < MAX_LERPS; ++lerp_n) {
     lerp_t* lerp = lerps + lerp_n;
     if (lerp->state != STATE_EMPTY) {
-      CRGB* led = leds + lerp->led;
+      CRGB* led = lerp->led == 0 ? NULL : (leds + (lerp->led - 1));
       update_lerp(now, led, lerp); // lerp
     }
   }
@@ -200,17 +206,30 @@ void update_lerp(unsigned long now, CRGB* led, lerp_t* lerp) {
   //Serial.print("l"); Serial.print(lerp->led); Serial.print("d"); Serial.print(lerp->duration); Serial.print("n"); Serial.print(now); Serial.print("s"); Serial.println(lerp->start_clock); 
   if (now < lerp->start_clock) return;
   if (now >= lerp->start_clock + lerp->duration) {
-    *led = lerp->end_color;
+    if (led != NULL) {
+      *led = lerp->end_color;
+    } else {
+      for (int i = 0; i < NUM_LEDS; ++i) {
+        leds[i] = lerp->end_color;
+      }
+    }
     --num_lerps;
     memset(lerp, 0, sizeof(lerp_t));
   } else {
     if (lerp->state == STATE_UNSTARTED) {
-      lerp->start_color = *led;
+      lerp->start_color = led != NULL ? *led : leds[0];
       lerp->state = STATE_RUNNING;
     }
     unsigned long elapsed = now - lerp->start_clock;
     unsigned long duration = lerp->duration;
-    *led = lerp->start_color.lerp8(lerp->end_color, (fract8)((elapsed << 8) / duration));
+    CRGB color = lerp->start_color.lerp8(lerp->end_color, (fract8)((elapsed << 8) / duration));
+    if (led != NULL) {
+      *led = color;
+    } else {
+      for (int i = 0; i < NUM_LEDS; ++i) {
+        leds[i] = color;
+      }
+    }
   }
 }
 

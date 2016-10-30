@@ -32,10 +32,13 @@ interWriteDelay = 100000 -- µs
 newtype TimeMs = TimeMs { unTimeMs :: Word32 }
 
 deriving instance Bounded TimeMs
+deriving instance Enum TimeMs
 deriving instance Eq TimeMs
+deriving instance Integral TimeMs
 deriving instance Num TimeMs
 deriving instance Ord TimeMs
 deriving instance Random TimeMs
+deriving instance Real TimeMs
 deriving instance Show TimeMs
 
 data Rgb = Rgb !Word8 !Word8 !Word8
@@ -53,6 +56,9 @@ instance Random Rgb where
         <*> state (randomR (lg, hg))
         <*> state (randomR (lb, hb))
   random = randomR (minBound, maxBound)
+
+mapRgb :: (Word8 -> Word8) -> Rgb -> Rgb
+mapRgb f (Rgb r g b) = Rgb (f r) (f g) (f b)
 
 data Report
   = FreeLerpReport Word8
@@ -183,7 +189,7 @@ runScheduler h (Scheduler {..}) = do
       schedulerStep :: StateT (Map (TimeMs, Word8) Lerp) m ()
       schedulerStep = do
         (realNowMs, wantLerps, usedLerps) <- readLerpReport
-        let nowMs = realNowMs - epochMs
+        let nowMs = if realNowMs < epochMs then 0 else realNowMs - epochMs
         when False $ $logDebug $ "Arduino: used lerps = " <> tshow usedLerps
         atomically $ writeTVar schedulerClockTv nowMs
         if not wantLerps

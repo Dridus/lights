@@ -22,7 +22,8 @@ executable light-controller
   default-extensions: FlexibleContexts FlexibleInstances FunctionalDependencies GeneralizedNewtypeDeriving LambdaCase MonadComprehensions MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude OverloadedStrings RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeFamilies ViewPatterns
   ghc-options: -Wall -Werror -O2
   build-depends:
-      aeson
+      MonadRandom
+    , aeson
     , async
     , base >= 4.7 && < 5
     , bytestring
@@ -36,6 +37,7 @@ executable light-controller
     , monad-loops
     , mtl
     , random
+    , random-shuffle
     , stm
     , text
     , unix
@@ -43,4 +45,5 @@ executable light-controller
     , wuss
   other-modules:
       Lights
+      LoggingOrphans
   default-language: Haskell2010

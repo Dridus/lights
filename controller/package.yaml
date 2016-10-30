@@ -10,6 +10,7 @@ copyright:           2016 Author name here
 category:            Web
 
 dependencies:
+  - MonadRandom
   - aeson
   - async
   - base >= 4.7 && < 5
@@ -24,6 +25,7 @@ dependencies:
   - monad-loops
   - mtl
   - random
+  - random-shuffle
   - stm
   - text
   - unix
