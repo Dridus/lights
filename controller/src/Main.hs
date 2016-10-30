@@ -32,7 +32,7 @@ master = do
     masterList =
       [ ("chase", chase)
       , ("ultrachristmas", ultrachristmas)
-      -- , ("show a message", showMessages)
+      , ("show a message", showMessages)
       , ("show a message", showMessages)
       , ("pulse", pulse)
       ]
